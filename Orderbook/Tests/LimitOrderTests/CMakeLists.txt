@@ -1,0 +1,12 @@
+
+add_executable(LimitFillOrKillTests FillOrKillTests.cpp)
+add_executable(LimitPartialFillTests PartialFillTests.cpp)
+add_executable(LimitFullFillTests FullFillTests.cpp)
+
+target_link_libraries(LimitFillOrKillTests GTest::gtest_main OrderbookLib)
+target_link_libraries(LimitFullFillTests GTest::gtest_main OrderbookLib)
+target_link_libraries(LimitPartialFillTests GTest::gtest_main OrderbookLib)
+
+add_test(LimitFillOrKillTests LimitFillOrKillTests)
+add_test(LimitPartialFillTests LimitPartialFillTests)
+add_test(LimitFullFillTests LimitFullFillTests)

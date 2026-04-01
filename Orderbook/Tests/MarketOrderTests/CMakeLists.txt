@@ -1,0 +1,11 @@
+add_executable(MarketFillOrKillTests FillOrKillTests.cpp)
+add_executable(MarketPartialFillTests PartialFillTests.cpp)
+add_executable(MarketFullFillTests FullFillTests.cpp)
+
+target_link_libraries(MarketFillOrKillTests GTest::gtest_main OrderbookLib)
+target_link_libraries(MarketFullFillTests GTest::gtest_main OrderbookLib)
+target_link_libraries(MarketPartialFillTests GTest::gtest_main OrderbookLib)
+
+add_test(MarketFillOrKillTests MarketFillOrKillTests)
+add_test(MarketPartialFillTests MarketPartialFillTests)
+add_test(MarketFullFillTests MarketFullFillTests)
