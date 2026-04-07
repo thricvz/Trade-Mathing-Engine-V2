@@ -1,6 +1,10 @@
 #ifndef ORDER_PARAMETERS_H
 #define ORDER_PARAMETERS_H 
 
+using Quantity = unsigned int;
+using OrderId = std::uint32_t;
+using UserId = std::uint32_t;
+
 enum class OrderSide {
   BUY  ,
   SELL ,
@@ -19,7 +23,6 @@ enum class OrderFillState {
   NO_FILL ,
 };
 
-using Quantity = unsigned int;
 
 
 #endif

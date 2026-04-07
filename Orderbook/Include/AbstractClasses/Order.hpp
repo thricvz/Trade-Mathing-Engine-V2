@@ -28,8 +28,8 @@ struct Order {
 
   virtual bool hasPriorityOver(const Order*) const = 0;
 
-  std::uint32_t ownerId{ };
-  std::uint32_t id{ };
+  UserId ownerId{ };
+  OrderId id{ };
   OrderSide     side{ };
   OrderType     type{ };
   Price         price{ };

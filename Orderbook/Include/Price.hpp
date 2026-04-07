@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <algorithm>
 
+
+
 struct Price {
   std::uint32_t dollars{};
   std::uint8_t cents{};
@@ -11,8 +13,6 @@ struct Price {
 
 
   Price () = default;
-  Price(std::uint32_t dollars) : dollars{dollars} {};
-
   Price(std::uint32_t dollars, std::uint32_t cents) {
       this->cents = cents % 100;
       this->dollars = dollars + (cents/100);
@@ -25,6 +25,14 @@ struct Price {
       this->dollars = dollars + (cents/100);
 
   }
+
+  Price(std::uint64_t fractionsOfPenny) {
+      uint64_t totalCents = fractionsOfPenny / 100;
+      this->fractionsOfPenny = fractionsOfPenny % 100;
+      this->cents = totalCents % 100;
+      this->dollars = totalCents / 100;
+  }
+    
 
   bool operator==(const Price& rhs) const {
     return  (dollars == rhs.dollars)
@@ -41,10 +49,13 @@ struct Price {
   }
 
 
-  private:
-    std::uint64_t totalValue() const {
-      return dollars * 10'000 + cents * 100 + fractionsOfPenny;
-    }
+  std::uint64_t totalValue() const {
+    return dollars * 10'000 + cents * 100 + fractionsOfPenny;
+  }
 };
+
+static Price dollars(int amount_in_dollars) {
+  return Price(amount_in_dollars, 0, 0);
+}
 
 #endif

@@ -42,7 +42,7 @@ TEST(sell_partial_fill_tests, partial_match_due_to_matches_of_same_owner) {
 
 TEST(sell_partial_fill_tests, partial_match_because_of_inaccessible_pricelevels) {
   auto incomingOrder = std::move(factory.createOrder(
-      OrderData{7u, 11u, OrderSide::SELL, OrderType::LIMIT, Price{33}, 38u}
+      OrderData{7u, 11u, OrderSide::SELL, OrderType::LIMIT, dollars(33), 38u}
   ));
 
   OrderBook orderbook(&factory); 
@@ -151,7 +151,7 @@ TEST(buy_partial_fill_tests, partial_match_due_to_matches_of_same_owner) {
 
 TEST(buy_partial_fill_tests, partial_match_because_of_inaccessible_pricelevels) {
   auto incomingOrder = std::move(factory.createOrder(
-      OrderData{7u, 11u, OrderSide::BUY, OrderType::LIMIT, Price{33}, 38u}
+      OrderData{7u, 11u, OrderSide::BUY, OrderType::LIMIT, dollars(33), 38u}
   ));
 
   OrderBook orderbook(&factory); 
@@ -187,7 +187,7 @@ TEST(buy_partial_fill_tests, partial_match_because_of_inaccessible_pricelevels) 
 
 TEST(buy_partial_fill_tests, partial_match_due_to_insufficient_number_of_orders) {
   auto incomingOrder = std::move(factory.createOrder(
-      OrderData{7u, 11u, OrderSide::BUY, OrderType::LIMIT, Price{500}, 700u}
+      OrderData{7u, 11u, OrderSide::BUY, OrderType::LIMIT, dollars(500), 700u}
   ));
 
   OrderBook orderbook(&factory); 

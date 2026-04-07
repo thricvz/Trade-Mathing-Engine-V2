@@ -22,6 +22,9 @@ namespace TestExtensions::OrderBook {
 #include "Data/MatchData.hpp"
 #include "OrderData.hpp"
 #include "PriceLevel.hpp"
+#include "json.hpp"
+
+using json = nlohmann::json;
 
 class OrderBook {
 
@@ -34,11 +37,10 @@ class OrderBook {
 
     }
     
-    // returns the matched orders
     MatchData match(std::unique_ptr<Order> order); 
    
-    Price bestBid(); // should be const
-    Price bestAsk(); // should be const         
+    Price bestBid() const;
+    Price bestAsk() const;         
  
     OrdersDataList getUserOrders(uint32_t userId) const ;
     OrdersDataList getAllOrders() const ;
@@ -46,10 +48,8 @@ class OrderBook {
   private:
     virtual MatchData matchMarket(Order* order); 
     virtual MatchData matchLimit(Order* order); 
-
     void store(std::unique_ptr<Order> order);
 
-    // data members
     std::unique_ptr<MatchingAlgorithm> m_algorithm{}; 
     AlgorithmFactory* m_factory{};
    

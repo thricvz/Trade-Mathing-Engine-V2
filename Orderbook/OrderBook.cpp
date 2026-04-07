@@ -186,13 +186,13 @@ void OrderBook::store(std::unique_ptr<Order> order) {
   create_and_store_pricelevel(std::move(order), storeList, storeList->begin() + offset);
 }
 
-Price OrderBook::bestBid() {
+Price OrderBook::bestBid() const {
   return this->m_buyOrders.size() > 0 
     ? this->m_buyOrders.begin()->get()->price 
     : Price{};
 };
 
-Price OrderBook::bestAsk() {
+Price OrderBook::bestAsk() const{
   return this->m_sellOrders.size() > 0 
     ? this->m_sellOrders.begin()->get()->price 
     : Price{};
