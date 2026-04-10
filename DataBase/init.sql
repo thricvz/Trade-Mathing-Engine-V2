@@ -1,21 +1,27 @@
 CREATE TABLE users(
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  username VARCHAR(30),
-  password VARCHAR(30)
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  username VARCHAR(30) NOT NULL,
+  password VARCHAR(30) NOT NULL
 );
 
+CREATE TABLE balance(
+  uid INTEGER NOT NULL,
+  amount BIGINT NOT NULL,
+  FOREIGN KEY (uid) REFERENCES users(id) 
+); 
+
 CREATE TABLE orders(
-  id INTEGER PRIMARY KEY ,
-  user_id INTEGER,
+  id INTEGER PRIMARY KEY NOT NULL,
+  user_id INTEGER NOT NULL,
 
-  order_side VARCHAR(10), 
-  order_type VARCHAR(10), 
+  order_side VARCHAR(10) NOT NULL,
+  order_type VARCHAR(10) NOT NULL,
 
-  price UNSIGNED BIGINT,
-  quantity INTEGER,
-  fill_or_kill BOOLEAN,
+  price UNSIGNED BIGINT NOT NULL,
+  quantity INTEGER NOT NULL,
+  fill_or_kill BOOLEAN NOT NULL,
 
-  active BOOLEAN,
+  active BOOLEAN NOT NULL,
 
 
   FOREIGN KEY (user_id) REFERENCES users(id)

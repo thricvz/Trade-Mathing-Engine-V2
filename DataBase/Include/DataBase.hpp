@@ -24,12 +24,16 @@ class DataBase {
     void register_order_completion(OrderId) const;
 
     json retrieve_orders() const; 
-    void delete_order(const OrderData&) const; 
+    void delete_order(OrderId) const; 
 
 
   private: 
     using sqlite3_callback = int(void*,int, char**, char**);
+
     bool user_exists(const std::string& username, const std::string& password) const;
+    bool order_exists(OrderId) const ;
+
+
     void execute_request(const std::string& , sqlite3_callback , void* callback_argument, char** error_msg) const;
 
 

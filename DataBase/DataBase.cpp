@@ -14,7 +14,6 @@ using std::to_string;
 #define REQUEST_PLACEHOLDER '?'
 #define REQUEST_PLACEHOLDER_LENGTH 1
 
-int default_callback(void*, int args, char** columns, char **rows) { return 0;}   ;
 
 json json_message(const std::string& message) {
   return {{"message", message}};
@@ -45,6 +44,18 @@ std::string create_sql_request(std::string request, Attributes ...attributes)  {
   return request;
 }
 
+int value_exists_callback(void* return_value,
+    int number_results, char** columns, char** rows) {
+
+    bool* value_exists = (bool*) return_value;
+    *value_exists = number_results > 0;
+    
+    return 0;
+};
+
+int default_callback(void*, int args, char** columns, char **rows) { 
+  return 0;
+}   
 
 void DataBase::execute_request(const std::string& sql_request,
     sqlite3_callback callback = nullptr,
@@ -83,19 +94,12 @@ json DataBase::create_user(const std::string& username, const std::string& passw
 
 
 bool DataBase::user_exists(const std::string& username, const std::string& password) const {
-  auto callback = [](void* return_value, int number_users, char** columns, char** rows) {
-    bool* user_is_existent = (bool*) return_value;
-    *user_is_existent = number_users > 0;
-    
-    return 0;
-  };
-
-  bool user_exists = false;
   const std::string& find_user = create_sql_request(
       "select * from users where username = '?' and password = '?';",
        username, password);
 
-  execute_request(find_user, callback, &user_exists);
+  bool user_exists = false;
+  execute_request(find_user, value_exists_callback , &user_exists);
 
   return user_exists;
 };
@@ -118,7 +122,6 @@ int create_user_json_data(void* user_return_data, int column_count, char** row, 
 };
 
 json DataBase::retrieve_user(const std::string& username, const std::string& password) const {
- // return json with username id 
   if (!user_exists(username, password)) 
     return json_message("User is non existent");
 
@@ -136,6 +139,7 @@ json DataBase::retrieve_user(const std::string& username, const std::string& pas
 }; 
 
 void DataBase::delete_user(const std::string& username, const std::string& password) const {
+  // delete the balance of the user as well
   if (user_exists(username, password)) {
     const std::string& user_deletion  = create_sql_request(
         "delete from users where username='?' and password='?';",
@@ -148,39 +152,55 @@ void DataBase::delete_user(const std::string& username, const std::string& passw
 }; 
 
 json DataBase::register_order(const OrderData& order) const {
-  /*
+  if (order_exists(order.id)) {
+    return json_message("Order does already exist");
+  }
   const std::string& order_registration =  create_sql_request(
-    "insert into orders values('?', '?', '?', '?', '?', '?', '?', TRUE)",
-    order.id, order.ownerId, order.side,
-    order.type, order.price.totalValue(),
-    order.quantity, order.fillOrKill
+    "insert into orders values('?', '?', '?', '?', '?', '?', '?', TRUE);",
+    to_string(order.id),
+    to_string(order.ownerId),
+    OrderParameters::to_string(order.side),
+    OrderParameters::to_string(order.type),
+    to_string(order.price.totalValue()),
+    to_string(order.quantity),
+    to_string(order.fillOrKill)
   );
-   
-  execute_request(order_registration);
-  */
-}; 
+  
+  execute_request(order_registration, default_callback);
+  return json_message("Order registered successfully");
+}
 
+
+bool DataBase::order_exists(OrderId orderId) const {
+  const std::string& find_order = create_sql_request(
+      "select * from orders where id = '?';",
+       to_string(orderId)
+  );
+
+  bool order_existant = false;
+  execute_request(find_order, value_exists_callback, &order_existant);
+
+  return order_existant;
+};
 
 void DataBase::register_order_completion(OrderId orderId) const {
-    /*
     const std::string& order_completion_registration = create_sql_request(
         "update orders set active = FALSE where id = '?';",
         to_string(orderId)
     );
 
     execute_request(order_completion_registration);
-    */
 };
 
-void DataBase::delete_order(const OrderData& order) const {
-    /*
-    const std::string& order_deletion  = create_sql_request(
-        "delete from orders where id = '?';",
-        std::to_string(order.id),
-    );
-    
-    execute_request(order_deletion);
-    */
+void DataBase::delete_order(OrderId orderId) const {
+    if ( order_exists(orderId) ) {
+      const std::string& order_deletion  = create_sql_request(
+          "delete from orders where id = '?';",
+          std::to_string(orderId)
+      );
+      
+      execute_request(order_deletion);
+    }
 }; 
 
 std::string format_price(const std::string& price_in_cents_fractions) {
@@ -191,7 +211,8 @@ std::string format_price(const std::string& price_in_cents_fractions) {
 
 int create_json_order_list(void* return_data, int column_count, char** row, char** columns) {
   std::vector<json>* orders_list = static_cast<std::vector<json>*>(return_data);
-
+  
+  // use an unscoped enum instead
   const int8_t ID = 0,
                OWNER_ID = 1,
                SIDE = 2,
@@ -208,10 +229,11 @@ int create_json_order_list(void* return_data, int column_count, char** row, char
      {"price",        format_price(retrieve_from_row(row, PRICE))},
      {"quantity",     retrieve_from_row(row, QUANTITY)},
      {"fill_or_kill", retrieve_from_row(row, FILL_OR_KILL)},
-  });
+  }); 
 
   return 0;
 }
+
 
 json DataBase::retrieve_orders() const {
     const std::string& order_retrieval  = create_sql_request("select * from orders where active = TRUE;");
