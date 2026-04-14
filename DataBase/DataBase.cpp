@@ -82,6 +82,13 @@ json DataBase::create_user(const std::string& username, const std::string& passw
     return json_message("user already exists");
   } 
   
+  const int32_t user_id = setup_user(username, password);
+  setup_user_balance(user_id, DEFAULT_INITIAL_BALANCE);
+
+  return json_message("user created successfully");
+}; 
+
+uint32_t DataBase::setup_user(const std::string& username, const std::string& password) const {
   const std::string& user_creation  = create_sql_request(
       "insert into users(username, password) values('?','?');",
       username, 
@@ -89,9 +96,20 @@ json DataBase::create_user(const std::string& username, const std::string& passw
   );
 
   execute_request(user_creation);
-  return json_message("user created successfully");
-}; 
+  const std::string& created_user_id = retrieve_user(username, password)["id"];
 
+  return std::stoi(created_user_id);
+};
+
+void DataBase::setup_user_balance(uint32_t user_id, const Price& intial_balance) const {
+  const std::string& balance_creation  = create_sql_request(
+      "insert into balance(uid, amount) values('?','?');",
+      to_string(user_id), 
+      to_string(intial_balance.totalValue())
+  );
+
+  execute_request(balance_creation);
+};
 
 bool DataBase::user_exists(const std::string& username, const std::string& password) const {
   const std::string& find_user = create_sql_request(
@@ -139,16 +157,60 @@ json DataBase::retrieve_user(const std::string& username, const std::string& pas
 }; 
 
 void DataBase::delete_user(const std::string& username, const std::string& password) const {
-  // delete the balance of the user as well
   if (user_exists(username, password)) {
+
+    const auto& user_id = retrieve_user(username, password)["id"];
     const std::string& user_deletion  = create_sql_request(
         "delete from users where username='?' and password='?';",
         username, 
         password
     );
     
+    const std::string& balance_deletion = create_sql_request(
+      "delete from balance where uid='?';",
+      user_id
+    );
+
     execute_request(user_deletion);
+    execute_request(balance_deletion);
   }
+}; 
+
+bool valid_price(const Price& price) {
+  return price.totalValue() >= 0;
+}
+
+void DataBase::update_user_balance(uint32_t user_id,const Price& new_account_balance) const {
+  if (valid_price(user_id)) {
+    
+    const std::string& balance_update = create_sql_request(
+        "update balance set amount='?' where uid='?';",
+        to_string(new_account_balance.totalValue()),
+        to_string(user_id)
+    );
+  
+    execute_request(balance_update);
+  }
+};  
+
+int retrieve_user_balance_callback (void* return_object, int args, char **row , char **columns) {
+    Price* const balance = static_cast<Price*>(return_object);
+
+    const std::string& balance_str = retrieve_from_row(row, 0);
+    *balance = Price(std::stol(balance_str));
+    return 0;
+};
+
+Price DataBase::retrieve_user_balance(uint32_t user_id) const {
+  Price user_balance; 
+  
+  execute_request(
+      create_sql_request("select amount from balance where uid='?';", to_string(user_id)),
+      retrieve_user_balance_callback,
+      &user_balance
+  );
+
+  return user_balance;
 }; 
 
 json DataBase::register_order(const OrderData& order) const {
