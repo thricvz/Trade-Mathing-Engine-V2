@@ -7,6 +7,7 @@ CREATE TABLE users(
 CREATE TABLE balance(
   uid INTEGER NOT NULL,
   amount BIGINT NOT NULL,
+  stock_amount BIGINT NOT NULL,
   FOREIGN KEY (uid) REFERENCES users(id) 
 ); 
 

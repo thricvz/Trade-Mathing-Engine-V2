@@ -7,6 +7,7 @@
 class Fifo : public MatchingAlgorithm {
   public:
     Fifo() = default;      
+    virtual ~Fifo() = default;
 
     MatchData match(Order*, PriceLevel*) const override; 
 };

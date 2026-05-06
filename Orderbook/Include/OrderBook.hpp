@@ -29,6 +29,9 @@ using json = nlohmann::json;
 class OrderBook {
 
   public:
+    using PriceLevelList = std::vector<std::unique_ptr<PriceLevel>>;
+    
+
     OrderBook(AlgorithmFactory* factory) 
       : m_algorithm{std::move(factory->createAlgorithm())}
       , m_factory{factory}
@@ -36,15 +39,21 @@ class OrderBook {
       assert((factory != nullptr) && "factory must be a valid instance, cannot be nullptr" );
 
     }
-    
+
+    virtual ~OrderBook() = default;    
+
+
     MatchData match(std::unique_ptr<Order> order); 
    
     Price bestBid() const;
     Price bestAsk() const;         
  
-    OrdersDataList getUserOrders(uint32_t userId) const ;
+    OrdersDataList getUserOrders(UserId userId) const ;
     OrdersDataList getAllOrders() const ;
-    
+  
+    void deleteOrder(OrderId id);
+
+
   private:
     virtual MatchData matchMarket(Order* order); 
     virtual MatchData matchLimit(Order* order); 
@@ -53,8 +62,8 @@ class OrderBook {
     std::unique_ptr<MatchingAlgorithm> m_algorithm{}; 
     AlgorithmFactory* m_factory{};
    
-    std::vector<std::unique_ptr<PriceLevel>> m_sellOrders{};
-    std::vector<std::unique_ptr<PriceLevel>> m_buyOrders{};
+    PriceLevelList m_sellOrders{};
+    PriceLevelList m_buyOrders{};
 
     #ifdef ORDERBOOK_TESTS
       friend void TestExtensions::OrderBook::loadOrders(AlgorithmFactory*, OrderBook*, std::vector<OrderData>&&);

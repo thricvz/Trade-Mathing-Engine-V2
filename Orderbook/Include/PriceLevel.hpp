@@ -18,17 +18,17 @@ class PriceLevel {
 
     PriceLevel(Price Price) : price{Price} {}
 
-    Quantity volume_excluding_owner(std::uint32_t excludedOwnerId) {
+    Quantity volume_excluding_owner(UserId excludedOwner) {
       Quantity volume{};
       for (const auto& order : this->m_orderList) {
-        if (order->ownerId != excludedOwnerId) 
+        if (order->ownerId != excludedOwner) 
           volume += order->quantity;
       }
       return volume;
     };
 
 
-    virtual Order* getAt(std::int32_t index) const {
+    virtual Order* getAt(OrderId index) const {
       if (index >= this->m_orderList.size()) {
         return nullptr ;
       }
@@ -40,11 +40,7 @@ class PriceLevel {
       return this->m_orderList.size();
     }
 
-
-    // general volume function()
-    // and volume excluding orders per owner
     
-    // PriceLevel stores orders per priority
     virtual void addOrder(std::unique_ptr<Order> order){
       increase_total_volume(order->quantity);
       auto position = m_orderList.begin();
@@ -56,7 +52,7 @@ class PriceLevel {
       m_orderList.insert(position, std::move(order) );
     }
 
-    virtual void removeOrder(std::uint32_t orderId) {
+    virtual bool removeOrder(OrderId orderId) {
       std::unique_ptr<Order> orderToDelete{};
 
       for (auto orderIndex{0}; orderIndex < m_orderList.size() ; orderIndex++) {
@@ -64,9 +60,11 @@ class PriceLevel {
           orderToDelete = std::move(m_orderList.at(orderIndex));
           m_orderList.erase(m_orderList.begin() + orderIndex);
           decrease_total_volume(orderToDelete->quantity);
-          break;
+          return true;
         }
       } 
+      
+      return false;
     }
 
 

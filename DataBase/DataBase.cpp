@@ -57,16 +57,25 @@ int default_callback(void*, int args, char** columns, char **rows) {
   return 0;
 }   
 
+template<typename OUT_VALUE_TYPE, typename TO_STRING_FUNC>
+int retrieve_from_single_column_callback (void* return_object, int args, char **row , char **columns) {
+    OUT_VALUE_TYPE return_value = static_cast<OUT_VALUE_TYPE>(return_object);
+
+    const std::string& str_result = retrieve_from_row(row, 0);
+    *return_value = TO_STRING_FUNC(str_result)
+    return 0;
+};
+
 void DataBase::execute_request(const std::string& sql_request,
     sqlite3_callback callback = nullptr,
     void* callback_argument = nullptr, char** error_msg = nullptr) const {
   
-  sqlite3_exec(m_database, sql_request.c_str(), callback, callback_argument, nullptr);
-  // handle errors
+  sqlite3_exec(m_database, sql_request.c_str(), callback, callback_argument, error_msg);
 }
 
-DataBase::DataBase(const char* file_name) {
-  sqlite3_open(file_name, &m_database);
+DataBase::DataBase(const char* file_name) : m_db_file_path(file_name) {
+  sqlite3_open(m_db_file_path.c_str(), &m_database);
+
   if (!m_database) {
     std::cerr << "Failed to open database with file:  " << file_name << "\n";
     std::terminate();
@@ -77,18 +86,45 @@ DataBase::~DataBase(){
   sqlite3_close(m_database);
 }; 
 
+void DataBase::reload(void(*modify_database_file)()){ 
+  sqlite3_close(m_database);
+  modify_database_file();
+  sqlite3_open(m_db_file_path.c_str(), &m_database);
+}; 
+
 json DataBase::create_user(const std::string& username, const std::string& password) const {
   if (user_exists(username, password)) {
     return json_message("user already exists");
   } 
   
-  const int32_t user_id = setup_user(username, password);
+  const int32_t user_id = next_user_id(); 
+  setup_user(username, password);
   setup_user_balance(user_id, DEFAULT_INITIAL_BALANCE);
 
   return json_message("user created successfully");
 }; 
 
-uint32_t DataBase::setup_user(const std::string& username, const std::string& password) const {
+int calculate_new_id(void* return_out, int args, char** row_value, char **) { 
+  uint32_t* next_id = static_cast<uint32_t*>(return_out);
+  if (*row_value)
+    *next_id = std::stoi(*row_value) + 1;
+
+  return 0;
+}   
+
+uint32_t DataBase::next_user_id() const {
+  const uint32_t FIRST_USER_ID{ 1 };
+  uint32_t next_id{ FIRST_USER_ID }; 
+  
+  const std::string& retrieve_latest_assigned_id = create_sql_request(
+      "select max(id) from users;");
+
+  execute_request(retrieve_latest_assigned_id, calculate_new_id, &next_id);
+  
+  return next_id;
+}
+
+void DataBase::setup_user(const std::string& username, const std::string& password) const {
   const std::string& user_creation  = create_sql_request(
       "insert into users(username, password) values('?','?');",
       username, 
@@ -96,9 +132,6 @@ uint32_t DataBase::setup_user(const std::string& username, const std::string& pa
   );
 
   execute_request(user_creation);
-  const std::string& created_user_id = retrieve_user(username, password)["id"];
-
-  return std::stoi(created_user_id);
 };
 
 void DataBase::setup_user_balance(uint32_t user_id, const Price& intial_balance) const {
@@ -159,7 +192,7 @@ json DataBase::retrieve_user(const std::string& username, const std::string& pas
 void DataBase::delete_user(const std::string& username, const std::string& password) const {
   if (user_exists(username, password)) {
 
-    const auto& user_id = retrieve_user(username, password)["id"];
+    const auto& user_id = retrieve_user(username, password);
     const std::string& user_deletion  = create_sql_request(
         "delete from users where username='?' and password='?';",
         username, 
@@ -168,7 +201,7 @@ void DataBase::delete_user(const std::string& username, const std::string& passw
     
     const std::string& balance_deletion = create_sql_request(
       "delete from balance where uid='?';",
-      user_id
+      user_id["id"]
     );
 
     execute_request(user_deletion);
@@ -213,6 +246,15 @@ Price DataBase::retrieve_user_balance(uint32_t user_id) const {
   return user_balance;
 }; 
 
+long DataBase::retrieve_user_stock_quantity(uint32_t user_id) const {
+  long user_stock_balance{0};
+  execute_request(
+      create_sql_request("select sum(stock_amount) from balance where uid='?';", to_string(user_id)),
+      retrieve_value_callback<long,std::stol>,
+      &user_stock_balance
+  );
+};
+
 json DataBase::register_order(const OrderData& order) const {
   if (order_exists(order.id)) {
     return json_message("Order does already exist");
@@ -245,7 +287,7 @@ bool DataBase::order_exists(OrderId orderId) const {
   return order_existant;
 };
 
-void DataBase::register_order_completion(OrderId orderId) const {
+void DataBase::register_order_as_complete(OrderId orderId) const {
     const std::string& order_completion_registration = create_sql_request(
         "update orders set active = FALSE where id = '?';",
         to_string(orderId)

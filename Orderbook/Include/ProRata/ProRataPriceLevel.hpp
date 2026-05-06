@@ -14,7 +14,7 @@ struct ProRataPriceLevel : public PriceLevel {
   ProRataPriceLevel(Price price) : PriceLevel(price) {}
  
 
-  ProRataOrder* getAt(std::int32_t index) const override {
+  ProRataOrder* getAt(OrderId index) const override {
     Order* orderPtr = PriceLevel::getAt(index);
     if (orderPtr) {
       return static_cast<ProRataOrder*>(orderPtr);

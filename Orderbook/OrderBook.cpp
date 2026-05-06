@@ -212,7 +212,7 @@ void register_user_order(const Order* order, std::vector<OrderData>& data_list) 
        });
 }
 
-void register_user_orders_from_pricelevel(uint32_t userId, const PriceLevel* pricelevel, std::vector<OrderData>& registry_list) {
+void register_user_orders_from_pricelevel(UserId userId, const PriceLevel* pricelevel, std::vector<OrderData>& registry_list) {
     const uint32_t order_count{pricelevel->getNumberOfOrders()};
 
     for (auto i{0}; i < order_count; i++ ) {
@@ -234,7 +234,7 @@ void register_all_orders_pricelevel(
 }
 
 // beautiful_code has goood tips : short precise functions
-OrdersDataList OrderBook::getUserOrders(uint32_t userId) const {
+OrdersDataList OrderBook::getUserOrders(UserId userId) const {
   OrdersDataList userOrders{};
   userOrders.sellOrders.reserve(10);
   userOrders.buyOrders.reserve(10);
@@ -265,4 +265,23 @@ OrdersDataList OrderBook::getAllOrders() const {
 
   return allOrders;
 };
+
+bool deleteOrderFrom(OrderBook::PriceLevelList& priceLevels, OrderId orderId) {
+  for (auto& pricelevel : priceLevels)  {
+    bool orderDeleted = pricelevel->removeOrder(orderId);
+
+    if (orderDeleted)
+      return true;
+  }
+
+  return false;
+}
+
+void OrderBook::deleteOrder(OrderId orderId) {
+  bool orderWasDeleted = deleteOrderFrom(m_sellOrders, orderId);
+
+  if (!orderWasDeleted)
+    deleteOrderFrom(m_buyOrders, orderId);
+}
+
 
