@@ -75,13 +75,13 @@ json RessourceManager::create_order(const OrderData& order) {
 };
 
 bool RessourceManager::order_prerequisites_met(const OrderData& order) const {
-  return order.side == OrderSide::BUY 
-    : sufficient_balance_for(order) 
-    ? sufficient_stocks_for(order);
+  return order.side == OrderSide::BUY ?
+     sufficient_balance_for(order) :
+     sufficient_stocks_for(order)  ;
 } 
 
 bool RessourceManager::sufficient_stocks_for(const OrderData& order) const {
-  const auto& user_stock_quantity = retrieve_user_stock_quantity(order.ownerId);
+  const auto& user_stock_quantity = m_database.retrieve_user_stock_quantity(order.ownerId);
 
   return user_stock_quantity >= order.quantity;
 }
@@ -89,17 +89,19 @@ bool RessourceManager::sufficient_stocks_for(const OrderData& order) const {
 bool RessourceManager::sufficient_balance_for(const OrderData& order) const {
   if (order.type == OrderType::LIMIT) {
     const Price& total_order_price = order.quantity * order.price.totalValue();
-    const Price& user_balance = m_database->retrieve_user_balance(order.ownerId);
+    const Price& user_balance = m_database.retrieve_user_balance(order.ownerId);
 
-    return user_balance >= total_order_price;
+    return user_balance.totalValue() >= total_order_price.totalValue();
 
   } else {
     // remaining logic  
+
+    return false;
   }
 }
 
 json RessourceManager::match_order(const OrderData& data) {
-    
+   return json{}; 
 };
 
 

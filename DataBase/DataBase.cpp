@@ -44,6 +44,10 @@ std::string create_sql_request(std::string request, Attributes ...attributes)  {
   return request;
 }
 
+std::string retrieve_from_row(char** row, int8_t data_index) {
+  return row[data_index];
+}
+
 int value_exists_callback(void* return_value,
     int number_results, char** columns, char** rows) {
 
@@ -57,14 +61,16 @@ int default_callback(void*, int args, char** columns, char **rows) {
   return 0;
 }   
 
-template<typename OUT_VALUE_TYPE, typename TO_STRING_FUNC>
-int retrieve_from_single_column_callback (void* return_object, int args, char **row , char **columns) {
-    OUT_VALUE_TYPE return_value = static_cast<OUT_VALUE_TYPE>(return_object);
+
+int retrieve_user_stock_quantity_callback(void* return_object, int args, char **row , char **columns) {
+    uint64_t *return_value = static_cast<uint64_t*>(return_object);
 
     const std::string& str_result = retrieve_from_row(row, 0);
-    *return_value = TO_STRING_FUNC(str_result)
+    *return_value = std::stoull(str_result);
     return 0;
 };
+
+
 
 void DataBase::execute_request(const std::string& sql_request,
     sqlite3_callback callback = nullptr,
@@ -156,9 +162,6 @@ bool DataBase::user_exists(const std::string& username, const std::string& passw
 };
 
 
-std::string retrieve_from_row(char** row, int8_t data_index) {
-  return row[data_index];
-}
 
 int create_user_json_data(void* user_return_data, int column_count, char** row, char** columns) {
   const int8_t ID{0};
@@ -246,13 +249,15 @@ Price DataBase::retrieve_user_balance(uint32_t user_id) const {
   return user_balance;
 }; 
 
-long DataBase::retrieve_user_stock_quantity(uint32_t user_id) const {
-  long user_stock_balance{0};
+uint64_t DataBase::retrieve_user_stock_quantity(uint32_t user_id) const {
+  uint64_t user_stock_balance{0};
+
   execute_request(
       create_sql_request("select sum(stock_amount) from balance where uid='?';", to_string(user_id)),
-      retrieve_value_callback<long,std::stol>,
+      retrieve_user_stock_quantity_callback,
       &user_stock_balance
   );
+  return user_stock_balance;
 };
 
 json DataBase::register_order(const OrderData& order) const {
